@@ -22,11 +22,11 @@ def receiveFile(socket, numBytes):
 def sendFile(data, sock):
 	serverAddr = "localhost"
 
-	fileName = data
+	fileName = data[9:]
 	fileObj = open(fileName, "r")
 
 	dataConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	dataConnection.connect((serverAddr, 1231))
+	dataConnection.connect((serverAddr, int(data[:5])))
 
 	numSent = 0
 	fileData = None
@@ -64,6 +64,7 @@ def main():
 
 		while 1:
 			data = controlConnection.recv(1024) # receive command and ephemeral port from client through control channel
+
 			if data[0:2] == "ls":
 				# create new data connection for data transfer
 				ephemeralSocket = int(data[3:])
@@ -79,8 +80,8 @@ def main():
 				dataConnection.close()
 				print("List files success!\n")
 
-			elif data[0:3] == "get":
-				sendFile(data[4:], controlConnection)
+			elif data[5:8] == "get":
+				sendFile(data, controlConnection)
 				print("Query success!\n")
 
 			elif data[0:3] == "put":
@@ -115,3 +116,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+

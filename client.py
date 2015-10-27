@@ -87,6 +87,7 @@ def main():
 
 				serverData = dataConnection.recv(8192)
 				print(serverData)
+
 				dataConnection.close()
 
 				break
@@ -95,32 +96,39 @@ def main():
 			if len(sys.argv) != 2:	# bug here
 				print("USAGE: get <FILE NAME>")
 
-                                controlSocket.send(data)
-
                                 dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                                dataSocket.bind(('', 1231))	# using test port, need to use emphemeral ports
-                                dataSocket.listen(1)
+            			dataSocket.bind(("", 0))
 
-                                dataConnection, addr = dataSocket.accept()
-				print("Data transfer channel connection up.\n")
+				s = str(dataSocket.getsockname()[1]) + data
+			
+            			# send ephemeral port number and command to the server
+            			controlSocket.send(s)
+            			dataSocket.listen(1)
 
-                                fileData = ""
-                                recvBuff = ""
-                                fileSize = 0	
-                                fileSizeBuff = ""
+				while 1:
 
-                                fileSizeBuff = receiveFile(dataConnection, 10)
-                                fileSize = int(fileSizeBuff)
+                                	dataConnection, addr = dataSocket.accept()
+					print("Data transfer channel connection up.\n")
 
-                                print("The file size is: ", fileSize)
-                                fileData = receiveFile(dataConnection, fileSize)
-                                print("The file name is: " + data[4:])
+                                	fileData = ""
+                                	recvBuff = ""
+                                	fileSize = 0	
+                                	fileSizeBuff = ""
 
-                                file = open(data[4:], "w")
-                                file.write(fileData)
-                                file.close()
+                                	fileSizeBuff = receiveFile(dataConnection, 10)
+                                	fileSize = int(fileSizeBuff)
 
-                                dataConnection.close()
+                                	print("The file size is: ", fileSize)
+                                	fileData = receiveFile(dataConnection, fileSize)
+                                	print("The file name is: " + data[4:])
+
+                                	file = open(data[4:], "w")
+                                	file.write(fileData)
+                                	file.close()
+
+                                	dataConnection.close()
+
+					break
 
 		elif data[0:3] == "put":
 			if len(sys.argv) != 2:	# bug here
@@ -139,3 +147,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
