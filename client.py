@@ -65,14 +65,24 @@ def main():
 	data = raw_input("ftp> ")
 	while data != "quit":
 		if data[0:2] == "ls":
-			controlSocket.send(data)	# send command to server through control channel
+			#controlSocket.send(data)	# send command to server through control channel
+
+			#dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			#dataSocket.bind(('', testPort))	# using test port, need to use emphemeral ports
+			#dataSocket.listen(1)
 
 			dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			dataSocket.bind(('', testPort))	# using test port, need to use emphemeral ports
-			dataSocket.listen(1)
+            		dataSocket.bind(("", 0))
+
+			s = data + " " + str(dataSocket.getsockname()[1])
+			
+            		# send ephemeral port number and command to the server
+            		controlSocket.send(s)
+            		dataSocket.listen(1)
 			
 			while 1:
 				dataConnection, addr = dataSocket.accept()
+				#dataConnection, addr = dataSocket.accept()
 				print("Data transfer channel connection up.\n")
 
 				serverData = dataConnection.recv(8192)

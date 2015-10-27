@@ -63,10 +63,15 @@ def main():
 		print("Connected.")
 
 		while 1:
-			data = controlConnection.recv(8192) # receive command from client through control channel
+			data = controlConnection.recv(1024) # receive command and ephemeral port from client through control channel
 			if data[0:2] == "ls":
+				# create new data connection for data transfer
+				ephemeralSocket = int(data[3:])
 				dataConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				dataConnection.connect(("localhost", testSocket))
+				dataConnection.connect(("localhost", ephemeralSocket))
+
+				#dataConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+				#dataConnection.connect(("localhost", testSocket))
 
 				dataToSend = subprocess.check_output(["ls"])
 				dataConnection.send(dataToSend)
