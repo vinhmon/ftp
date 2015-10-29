@@ -1,4 +1,4 @@
-# TODO: -replace current data connections with emphemeral connections, this should cover all the test ports
+# TODO: 
 #	-server needs to send error messages back to client
 #	-error checks for input
 #	-error checks for file not found
@@ -8,12 +8,12 @@ import socket
 import sys
 import subprocess
 
-def receiveFile(socket, numBytes):
+def receiveFile(sock, numBytes):
 	recvBuff = ""
 	tmpBuff = ""
 
 	while len(recvBuff) < numBytes:
-		tmpBuff =  socket.recv(numBytes)
+		tmpBuff =  sock.recv(numBytes)
 		if not tmpBuff:
 			break
 		recvBuff += tmpBuff
@@ -25,8 +25,10 @@ def sendFile(data, sock):
 	fileName = data[9:]
 	fileObj = open(fileName, "r")
 
+	ephemeralSocket = int(data[:5])
+
 	dataConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	dataConnection.connect((serverAddr, int(data[:5])))
+	dataConnection.connect((serverAddr, ephemeralSocket))
 
 	numSent = 0
 	fileData = None
@@ -52,27 +54,24 @@ def main():
 		exit()
 
 	listenPort = int(sys.argv[1])
-	testSocket = 9999	# test socket number
 
 	controlSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	controlSocket.bind(('', listenPort))
 	controlSocket.listen(1)
 
+        print("The server is ready to receive.")
+
 	while 1:
 		controlConnection, addr = controlSocket.accept()
-		print("Connected.")
+		print("--Connection established.")
 
 		while 1:
 			data = controlConnection.recv(1024) # receive command and ephemeral port from client through control channel
-
 			if data[0:2] == "ls":
 				# create new data connection for data transfer
 				ephemeralSocket = int(data[3:])
 				dataConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				dataConnection.connect(("localhost", ephemeralSocket))
-
-				#dataConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				#dataConnection.connect(("localhost", testSocket))
 
 				dataToSend = subprocess.check_output(["ls"])
 				dataConnection.send(dataToSend)
@@ -84,9 +83,11 @@ def main():
 				sendFile(data, controlConnection)
 				print("Query success!\n")
 
-			elif data[0:3] == "put":
+			elif data[5:8] == "put":
+                                # create new data connection for data transfer
+				ephemeralSocket = int(data[:5])
                                 dataConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                                dataConnection.connect(("localhost", 1232))
+                                dataConnection.connect(("localhost", ephemeralSocket))
 
                                 fileData = ""
                                 recvBuff = ""
@@ -96,20 +97,18 @@ def main():
                                 fileSizeBuff = receiveFile(dataConnection, 10)
                                 fileSize = int(fileSizeBuff)
 
-                                print("The file size is: ", fileSize)
                                 fileData = receiveFile(dataConnection, fileSize)
-                                print("The file name is: " + data[4:])
-
-                                file = open(data[4:], "w")
+                                
+                                file = open(data[9:], "w")
                                 file.write(fileData)
                                 file.close()
 
                                 dataConnection.close()
 
-				print("Upload success!")
+				print("Upload success!\n")
 
 			elif data[0:4] == "quit":
-				print("Connection closed.")
+				print("--Connection closed.")
 				break
 
 	controlConnection.close()

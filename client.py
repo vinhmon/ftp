@@ -1,4 +1,4 @@
-# TODO: -replace current data connections with emphemeral connections, this should cover all the test ports
+# TODO: 
 #	-server needs to send error messages back to client
 #	-error checks for input
 #	-error checks for file not found
@@ -21,33 +21,41 @@ def receiveFile(sock, numBytes):
 def sendFile(data, sock):
 	serverAddr = "localhost"
 
-	fileName = data
+	fileName = data[4:]
 	fileObj = open(fileName, "r")
 
 	dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	dataSocket.bind(('', 1232))
+        dataSocket.bind(("", 0))
+
+	s = str(dataSocket.getsockname()[1]) + data
+
+        sock.send(s)
 	dataSocket.listen(1)
 
-	dataConnection, addr = dataSocket.accept()
-	print("Data transfer channel connection up.\n")
+        
+        dataConnection, addr = dataSocket.accept()
+        print("Data transfer channel connection up.\n")
 
-	numSent = 0
-	fileData = None
+        numSent = 0
+        fileData = None
 
-	while True:
-		fileData = fileObj.read(65536)
-		if fileData:
-			dataSizeStr = str(len(fileData))
-			while len(dataSizeStr) < 10:
-				dataSizeStr = "0" + dataSizeStr
-			fileData = dataSizeStr + fileData
-			numSent = 0
-			while len(fileData)> numSent:
-				numSent += dataConnection.send(fileData[numSent:])
-		else:
-			break
+        while True:
+                fileData = fileObj.read(65536)
+                if fileData:
+                        dataSizeStr = str(len(fileData))
+                        while len(dataSizeStr) < 10:
+                                dataSizeStr = "0" + dataSizeStr
+                        fileData = dataSizeStr + fileData
+                        numSent = 0
+                        while len(fileData)> numSent:
+                                numSent += dataConnection.send(fileData[numSent:])
+                else:
+                        break
 
-	dataConnection.close()
+        print("The sent file size is: ", (numSent-10))
+        print("The file name is: " + fileName)
+
+        dataConnection.close()
 
 def main():
 	if len(sys.argv) != 3:
@@ -118,7 +126,7 @@ def main():
                                 	fileSizeBuff = receiveFile(dataConnection, 10)
                                 	fileSize = int(fileSizeBuff)
 
-                                	print("The file size is: ", fileSize)
+                                	print("The received file size is: ", fileSize)
                                 	fileData = receiveFile(dataConnection, fileSize)
                                 	print("The file name is: " + data[4:])
 
@@ -134,8 +142,8 @@ def main():
 			if len(sys.argv) != 2:	# bug here
 				print("USAGE: put <FILE NAME>")
 
-			controlSocket.send(data)
-                        sendFile(data[4:], controlSocket)
+			#controlSocket.send(data)
+                        sendFile(data, controlSocket)
 				
 		else:
 			print("Use commands: ls, get <FILE NAME>, put <FILE NAME>, or quit")
