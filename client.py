@@ -64,7 +64,6 @@ def main():
 
 	serverAddr = sys.argv[1]
 	serverPort = int(sys.argv[2])
-	testPort = 9999
 
 	controlSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	controlSocket.connect((serverAddr, serverPort))
@@ -73,12 +72,6 @@ def main():
 	data = raw_input("ftp> ")
 	while data != "quit":
 		if data[0:2] == "ls":
-			#controlSocket.send(data)	# send command to server through control channel
-
-			#dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			#dataSocket.bind(('', testPort))	# using test port, need to use emphemeral ports
-			#dataSocket.listen(1)
-
 			dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             		dataSocket.bind(("", 0))
 
@@ -88,17 +81,14 @@ def main():
             		controlSocket.send(s)
             		dataSocket.listen(1)
 			
-			while 1:
-				dataConnection, addr = dataSocket.accept()
-				#dataConnection, addr = dataSocket.accept()
-				print("Data transfer channel connection up.\n")
+			
+                        dataConnection, addr = dataSocket.accept()
+                        print("Data transfer channel connection up.\n")
 
-				serverData = dataConnection.recv(8192)
-				print(serverData)
+                        serverData = dataConnection.recv(8192)
+                        print(serverData)
 
-				dataConnection.close()
-
-				break
+                        dataConnection.close()
 
 		elif data[0:3] == "get":
 			if len(sys.argv) != 2:	# bug here
@@ -113,36 +103,31 @@ def main():
             			controlSocket.send(s)
             			dataSocket.listen(1)
 
-				while 1:
+                                dataConnection, addr = dataSocket.accept()
+				print("Data transfer channel connection up.\n")
 
-                                	dataConnection, addr = dataSocket.accept()
-					print("Data transfer channel connection up.\n")
+                                fileData = ""
+                                recvBuff = ""
+                                fileSize = 0	
+                                fileSizeBuff = ""
 
-                                	fileData = ""
-                                	recvBuff = ""
-                                	fileSize = 0	
-                                	fileSizeBuff = ""
+                                fileSizeBuff = receiveFile(dataConnection, 10)
+                                fileSize = int(fileSizeBuff)
 
-                                	fileSizeBuff = receiveFile(dataConnection, 10)
-                                	fileSize = int(fileSizeBuff)
+                                print("The received file size is: ", fileSize)
+                                fileData = receiveFile(dataConnection, fileSize)
+                                print("The file name is: " + data[4:])
 
-                                	print("The received file size is: ", fileSize)
-                                	fileData = receiveFile(dataConnection, fileSize)
-                                	print("The file name is: " + data[4:])
+                                file = open(data[4:], "w")
+                                file.write(fileData)
+                                file.close()
 
-                                	file = open(data[4:], "w")
-                                	file.write(fileData)
-                                	file.close()
-
-                                	dataConnection.close()
-
-					break
+                                dataConnection.close()
 
 		elif data[0:3] == "put":
 			if len(sys.argv) != 2:	# bug here
 				print("USAGE: put <FILE NAME>")
 
-			#controlSocket.send(data)
                         sendFile(data, controlSocket)
 				
 		else:
@@ -155,4 +140,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-
